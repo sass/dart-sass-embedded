@@ -104,7 +104,7 @@ final lengthDelimitedDecoder =
 /// of each packet, so that they can safely be sent over a medium that doesn't
 /// preserve packet boundaries.
 final lengthDelimitedEncoder =
-    StreamTransformer<List<int>, List<int>>.fromHandlers(
+    StreamTransformer<Uint8List, List<int>>.fromHandlers(
         handleData: (message, sink) {
   var messageLength = Uint8List(4);
   ByteData.view(messageLength.buffer)

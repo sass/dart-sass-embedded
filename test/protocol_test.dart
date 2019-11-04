@@ -253,8 +253,8 @@ a {
 
         var failure = getCompileFailure(await process.outbound.next);
         expect(p.fromUri(failure.span.url), equalsPath(path));
-        expect(failure.stackTrace,
-            equals("${p.prettyUri(p.toUri(path))} 1:7  root stylesheet\n"));
+        expect(failure.stackTrace, endsWith(" 1:7  root stylesheet\n"));
+        expect(failure.stackTrace.split(" ").first, equalsPath(path));
         await process.kill();
       });
     });

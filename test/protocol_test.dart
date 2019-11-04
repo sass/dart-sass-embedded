@@ -247,14 +247,14 @@ a {
 
       test("a path input", () async {
         await d.file("test.scss", "a {b: 1px + 1em}").create();
+        var path = d.path("test.scss");
         process.inbound.add(InboundMessage()
-          ..compileRequest =
-              (InboundMessage_CompileRequest()..path = d.path("test.scss")));
+          ..compileRequest = (InboundMessage_CompileRequest()..path = path));
 
         var failure = getCompileFailure(await process.outbound.next);
-        expect(p.fromUri(failure.span.url), equalsPath(d.path("test.scss")));
+        expect(p.fromUri(failure.span.url), equalsPath(path));
         expect(failure.stackTrace,
-            equals("${p.prettyUri(url)} 1:7  root stylesheet\n"));
+            equals("${p.prettyUri(p.toUri(path))} 1:7  root stylesheet\n"));
         await process.kill();
       });
     });

@@ -93,6 +93,5 @@ SourceSpan_SourceLocation location(int offset, int line, int column) =>
 
 /// Returns a matcher that verifies whether the given value refers to the same
 /// path as [expected].
-Matcher equalsPath(String expected) =>
-    predicate<String>((actual) => p.equals(actual, expected),
-        description: "equals $path");
+Matcher equalsPath(String expected) => predicate<String>(
+    (actual) => p.equals(actual, expected), "equals $expected");

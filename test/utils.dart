@@ -2,6 +2,7 @@
 // MIT-style license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:sass_embedded/src/embedded_sass.pb.dart';
@@ -89,3 +90,9 @@ SourceSpan_SourceLocation location(int offset, int line, int column) =>
       ..offset = offset
       ..line = line
       ..column = column;
+
+/// Returns a matcher that verifies whether the given value refers to the same
+/// path as [expected].
+Matcher equalsPath(String expected) =>
+    predicate<String>((actual) => p.equals(actual, expected),
+        description: "equals $path");

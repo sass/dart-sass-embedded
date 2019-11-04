@@ -188,8 +188,9 @@ void main() {
             (InboundMessage_CompileRequest()..path = d.path("test.scss")));
 
       var failure = getCompileFailure(await process.outbound.next);
-      expect(
-          failure.message, equals("Cannot open file: ${d.path('test.scss')}"));
+      expect(failure.message, startsWith("Cannot open file: "));
+      expect(failure.message.split(":").last.trim(),
+          equalsPath(d.path('test.scss')));
       expect(failure.span, equals(SourceSpan()));
       expect(failure.stackTrace, isEmpty);
       await process.kill();
@@ -251,8 +252,7 @@ a {
               (InboundMessage_CompileRequest()..path = d.path("test.scss")));
 
         var failure = getCompileFailure(await process.outbound.next);
-        var url = p.toUri(d.path("test.scss"));
-        expect(failure.span.url, equals(url.toString()));
+        expect(p.fromUri(failure.span.url), equalsPath(d.path("test.scss")));
         expect(failure.stackTrace,
             equals("${p.prettyUri(url)} 1:7  root stylesheet\n"));
         await process.kill();

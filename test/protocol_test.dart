@@ -31,15 +31,6 @@ void main() {
           process, "Protocol message contained an invalid tag (zero).");
       await process.kill();
     });
-
-    test("without shutting down the compiler", () async {
-      process.inbound.add(InboundMessage());
-      await expectParseError(process, "InboundMessage.message is not set.");
-
-      process.inbound.add(compileString("a {b: c}"));
-      await expectLater(process.outbound, emits(isSuccess("a { b: c; }")));
-      await process.kill();
-    });
   });
 
   group("compiles CSS from", () {

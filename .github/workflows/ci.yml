@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/setup-protoc@v1
-        with: {version: "${{ env.protoc_version }}"}
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: cedx/setup-dart@v2
         with: {release-channel: "${{ matrix.dart_channel }}"}
       - run: dart pub get
@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}" }
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: cedx/setup-dart@v2
       - run: dart pub get
       - run: dart pub run grinder protobuf
@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/setup-protoc@v1
-        with: {version: "${{ env.protoc_version }}"}
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: cedx/setup-dart@v2
       - run: dart pub get
       - run: dart pub run grinder protobuf
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/setup-protoc@v1
-        with: {version: "${{ env.protoc_version }}"}
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: cedx/setup-dart@v2
       - run: dart pub get
       - run: dart pub run grinder protobuf
@@ -94,7 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/setup-protoc@v1
-        with: {version: "${{ env.protoc_version }}"}
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: cedx/setup-dart@v2
       - run: dart pub get
       - run: dart pub run grinder protobuf

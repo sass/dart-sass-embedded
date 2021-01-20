@@ -10,7 +10,7 @@ import 'package:grinder/grinder.dart';
 import 'utils.dart';
 
 main(List<String> args) {
-  pkg.githubBearerToken = Platform.environment["GH_BEARER_TOKEN"];
+  pkg.githubBearerToken.value = Platform.environment["GH_BEARER_TOKEN"];
 
   pkg.addGithubTasks();
   grind(args);

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:sass/sass.dart' as sass;
 import 'package:source_maps/source_maps.dart' as source_maps;
 import 'package:stream_channel/stream_channel.dart';
+import 'package:term_glyph/term_glyph.dart' as term_glyph;
 
 import 'package:sass_embedded/src/dispatcher.dart';
 import 'package:sass_embedded/src/embedded_sass.pb.dart';
@@ -39,7 +40,8 @@ void main(List<String> args) {
         request.style == InboundMessage_CompileRequest_OutputStyle.COMPRESSED
             ? sass.OutputStyle.compressed
             : sass.OutputStyle.expanded;
-    var logger = Logger(dispatcher, request.id);
+    var color = request.alertColor ?? false;
+    var logger = Logger(dispatcher, request.id, color: color);
 
     try {
       String result;
@@ -59,6 +61,7 @@ void main(List<String> args) {
         case InboundMessage_CompileRequest_Input.string:
           var input = request.string;
           result = sass.compileString(input.source,
+              color: color,
               logger: logger,
               importers: importers,
               importer: _decodeImporter(dispatcher, request, input.importer),
@@ -72,6 +75,7 @@ void main(List<String> args) {
         case InboundMessage_CompileRequest_Input.path:
           try {
             result = sass.compile(request.path,
+                color: color,
                 logger: logger,
                 importers: importers,
                 functions: globalFunctions,
@@ -97,11 +101,17 @@ void main(List<String> args) {
       }
       return OutboundMessage_CompileResponse()..success = success;
     } on sass.SassException catch (error) {
+      var globalAsciiConfig = term_glyph.ascii;
+      term_glyph.ascii = request.alertAscii;
+      var formatted = error.toString(color: color);
+      term_glyph.ascii = globalAsciiConfig;
+
       return OutboundMessage_CompileResponse()
         ..failure = (OutboundMessage_CompileResponse_CompileFailure()
           ..message = error.message
           ..span = protofySpan(error.span)
-          ..stackTrace = error.trace.toString());
+          ..stackTrace = error.trace.toString()
+          ..formatted = formatted);
     }
   });
 }

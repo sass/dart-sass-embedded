@@ -97,22 +97,6 @@ void main() {
       await expectLater(process.outbound, emits(isSuccess(equals("a{b:3px}"))));
       await process.kill();
     });
-
-    test("expanded mode when nested mode is passed", () async {
-      process.inbound.add(compileString("a {b: 1px + 2px}",
-          style: InboundMessage_CompileRequest_OutputStyle.NESTED));
-      await expectLater(
-          process.outbound, emits(isSuccess(equals("a {\n  b: 3px;\n}"))));
-      await process.kill();
-    });
-
-    test("expanded mode when compact mode is passed", () async {
-      process.inbound.add(compileString("a {b: 1px + 2px}",
-          style: InboundMessage_CompileRequest_OutputStyle.COMPACT));
-      await expectLater(
-          process.outbound, emits(isSuccess(equals("a {\n  b: 3px;\n}"))));
-      await process.kill();
-    });
   });
 
   test("doesn't include a source map by default", () async {

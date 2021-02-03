@@ -76,8 +76,4 @@ class Logger implements sass.Logger {
     if (trace != null) event.stackTrace = trace.toString();
     _dispatcher.sendLog(event);
   }
-
-  // Returns [string] with every line indented [indentation] spaces.
-  String _indent(String string, int indentation) =>
-      string.split("\n").map((line) => (" " * indentation) + line).join("\n");
 }

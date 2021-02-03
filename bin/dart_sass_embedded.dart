@@ -8,7 +8,6 @@ import 'dart:convert';
 import 'package:sass/sass.dart' as sass;
 import 'package:source_maps/source_maps.dart' as source_maps;
 import 'package:stream_channel/stream_channel.dart';
-import 'package:term_glyph/term_glyph.dart' as term_glyph;
 
 import 'package:sass_embedded/src/dispatcher.dart';
 import 'package:sass_embedded/src/embedded_sass.pb.dart';
@@ -101,11 +100,8 @@ void main(List<String> args) {
       }
       return OutboundMessage_CompileResponse()..success = success;
     } on sass.SassException catch (error) {
-      var globalAsciiConfig = term_glyph.ascii;
-      term_glyph.ascii = request.alertAscii;
-      var formatted = error.toString(color: color);
-      term_glyph.ascii = globalAsciiConfig;
-
+      var formatted = withGlyphs(() => error.toString(color: color),
+          ascii: request.alertAscii);
       return OutboundMessage_CompileResponse()
         ..failure = (OutboundMessage_CompileResponse_CompileFailure()
           ..message = error.message

@@ -28,6 +28,3 @@ doc/api/
 
 # Generated protocol buffer files.
 *.pb*.dart
-
-# MacOS
-.DS_Store

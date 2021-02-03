@@ -22,13 +22,18 @@ class Logger implements sass.Logger {
   /// Whether the formatted message should contain terminal colors.
   final bool _color;
 
-  Logger(this._dispatcher, this._compilationId, {bool color = false})
-      : _color = color;
+  /// Whether the formatted message should use ASCII encoding.
+  final bool _ascii;
+
+  Logger(this._dispatcher, this._compilationId,
+      {bool color = false, bool ascii = false})
+      : _color = color,
+        _ascii = ascii;
 
   void debug(String message, SourceSpan span) {
     var url =
         span.start.sourceUrl == null ? '-' : p.prettyUri(span.start.sourceUrl);
-    var formatted = StringBuffer()
+    var buffer = StringBuffer()
       ..write('$url:${span.start.line + 1} ')
       ..write(_color ? '\u001b[1mDebug\u001b[0m' : 'DEBUG')
       ..writeln(': $message');
@@ -38,30 +43,33 @@ class Logger implements sass.Logger {
       ..type = OutboundMessage_LogEvent_Type.DEBUG
       ..message = message
       ..span = protofySpan(span)
-      ..formatted = formatted.toString());
+      ..formatted = buffer.toString());
   }
 
   void warn(String message,
       {FileSpan span, Trace trace, bool deprecation = false}) {
-    var formatted = new StringBuffer();
-    if (_color) {
-      formatted.write('\u001b[33m\u001b[1m');
-      if (deprecation) formatted.write('Deprecation ');
-      formatted.write('Warning\u001b[0m');
-    } else {
-      if (deprecation) formatted.write('DEPRECATION ');
-      formatted.write('WARNING');
-    }
-    if (span == null) {
-      formatted.writeln(': $message');
-    } else if (trace != null) {
-      formatted.writeln(': $message\n\n${span.highlight(color: _color)}');
-    } else {
-      formatted.writeln(' on ${span.message("\n" + message, color: _color)}');
-    }
-    if (trace != null) {
-      formatted.writeln(_indent(trace.toString().trimRight(), 4));
-    }
+    var formatted = withGlyphs(() {
+      var buffer = new StringBuffer();
+      if (_color) {
+        buffer.write('\u001b[33m\u001b[1m');
+        if (deprecation) buffer.write('Deprecation ');
+        buffer.write('Warning\u001b[0m');
+      } else {
+        if (deprecation) buffer.write('DEPRECATION ');
+        buffer.write('WARNING');
+      }
+      if (span == null) {
+        buffer.writeln(': $message');
+      } else if (trace != null) {
+        buffer.writeln(': $message\n\n${span.highlight(color: _color)}');
+      } else {
+        buffer.writeln(' on ${span.message("\n" + message, color: _color)}');
+      }
+      if (trace != null) {
+        buffer.writeln(indent(trace.toString().trimRight(), 4));
+      }
+      return buffer.toString();
+    }, ascii: _ascii);
 
     var event = OutboundMessage_LogEvent()
       ..compilationId = _compilationId
@@ -69,7 +77,7 @@ class Logger implements sass.Logger {
           ? OutboundMessage_LogEvent_Type.DEPRECATION_WARNING
           : OutboundMessage_LogEvent_Type.WARNING
       ..message = message
-      ..formatted = formatted.toString();
+      ..formatted = formatted;
     if (span != null) {
       event.span = protofySpan(span);
     }

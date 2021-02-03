@@ -182,6 +182,21 @@ void main() {
                 '    - 1:4  root stylesheet\n'));
         await process.kill();
       });
+
+      test("encoded in ASCII", () async {
+        process.inbound
+            .add(compileString("a {@debug a && b}", alertAscii: true));
+        var logEvent = getLogEvent(await process.outbound.next);
+        expect(
+            logEvent.formatted,
+            equals('WARNING on line 1, column 13: \n'
+                'In Sass, "&&" means two copies of the parent selector. You probably want to use "and" instead.\n'
+                '  ,\n'
+                '1 | a {@debug a && b}\n'
+                '  |             ^^\n'
+                '  \'\n'));
+        await process.kill();
+      });
     });
 
     test("for a parse-time deprecation warning", () async {

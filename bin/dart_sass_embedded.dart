@@ -40,7 +40,8 @@ void main(List<String> args) {
             ? sass.OutputStyle.compressed
             : sass.OutputStyle.expanded;
     var color = request.alertColor ?? false;
-    var logger = Logger(dispatcher, request.id, color: color);
+    var ascii = request.alertAscii ?? false;
+    var logger = Logger(dispatcher, request.id, color: color, ascii: ascii);
 
     try {
       String result;

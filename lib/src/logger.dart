@@ -78,9 +78,7 @@ class Logger implements sass.Logger {
           : OutboundMessage_LogEvent_Type.WARNING
       ..message = message
       ..formatted = formatted;
-    if (span != null) {
-      event.span = protofySpan(span);
-    }
+    if (span != null) event.span = protofySpan(span);
     if (trace != null) event.stackTrace = trace.toString();
     _dispatcher.sendLog(event);
   }

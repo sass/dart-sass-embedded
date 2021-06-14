@@ -68,6 +68,8 @@ void main(List<String> args) {
               syntax: syntaxToSyntax(input.syntax),
               style: style,
               url: input.url.isEmpty ? null : input.url,
+              quietDeps: request.quietDeps,
+              verbose: request.verbose,
               sourceMap: sourceMapCallback);
           break;
 
@@ -79,6 +81,8 @@ void main(List<String> args) {
                 importers: importers,
                 functions: globalFunctions,
                 style: style,
+                quietDeps: request.quietDeps,
+                verbose: request.verbose,
                 sourceMap: sourceMapCallback);
           } on FileSystemException catch (error) {
             return OutboundMessage_CompileResponse()

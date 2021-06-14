@@ -16,7 +16,7 @@ main(List<String> args) {
   pkg.environmentConstants.fn = () => {
         ...pkg.environmentConstants.defaultValue,
         "protocol-version":
-            File('build/embedded-protocol/VERSION').readAsStringSync(),
+            File('build/embedded-protocol/VERSION').readAsStringSync().trim(),
         "compiler-version": pkg.pubspec.version!.toString(),
         "implementation-version": _implementationVersion
       };

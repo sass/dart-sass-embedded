@@ -37,7 +37,7 @@ void main() {
   test("a version response is valid", () async {
     process.inbound.add(InboundMessage()
       ..versionRequest = (InboundMessage_VersionRequest()..id = 123));
-    var response = (await process.outbound.next).versionResponse!;
+    var response = (await process.outbound.next).versionResponse;
     expect(response.id, equals(123));
 
     Version.parse(response.protocolVersion); // shouldn't throw

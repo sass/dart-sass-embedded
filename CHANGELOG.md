@@ -1,3 +1,8 @@
+## 1.0.0-beta.11
+
+* Add a `--version` flag that will print a `VersionResponse` as JSON, for ease
+  of human identification.
+
 ## 1.0.0-beta.10
 
 * Support version 1.0.0-beta.12 of the Sass embedded protocol:

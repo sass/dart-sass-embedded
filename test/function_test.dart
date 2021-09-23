@@ -1769,6 +1769,33 @@ void main() {
                     "argument for max()."));
           });
         });
+
+        test("reports a compilation failure when simplification fails",
+            () async {
+          _process.inbound
+              .add(compileString("a {b: foo()}", functions: [r"foo()"]));
+
+          var request = getFunctionCallRequest(await _process.outbound.next);
+          expect(request.arguments, isEmpty);
+          _process.inbound.add(InboundMessage()
+            ..functionCallResponse = (InboundMessage_FunctionCallResponse()
+              ..id = request.id
+              ..success = (Value()
+                ..calculation = (Value_Calculation()
+                  ..name = "min"
+                  ..arguments.add(Value_Calculation_CalculationValue()
+                    ..number = (Value_Number()
+                      ..value = 1.0
+                      ..numerators.add("px")))
+                  ..arguments.add(Value_Calculation_CalculationValue()
+                    ..number = (Value_Number()
+                      ..value = 2.0
+                      ..numerators.add("s")))))));
+
+          var failure = await getCompileFailure(await _process.outbound.next);
+          expect(failure.message, equals("1px and 2s are incompatible."));
+          expect(_process.kill(), completes);
+        });
       });
     });
   });

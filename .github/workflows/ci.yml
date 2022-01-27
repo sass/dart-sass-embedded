@@ -171,7 +171,7 @@ jobs:
                 .version |= $version |
                 ."compiler-version" |= $version
               ' > package.json.tmp &&
-            mv package.json.tmp
+            mv package.json.tmp package.json
         shell: bash
 
       - uses: EndBug/add-and-commit@v8

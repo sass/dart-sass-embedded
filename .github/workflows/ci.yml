@@ -119,7 +119,40 @@ jobs:
       - run: dart pub get
       - run: dart run grinder protobuf
       - name: Deploy
-        run: dart run grinder pkg-github-release pkg-github-linux
+        run: dart run grinder pkg-github-release pkg-github-linux-ia32 pkg-github-linux-x64
+        env: {GH_BEARER_TOKEN: "${{ github.token }}"}
+
+  deploy_github_linux_qemu:
+    name: "Deploy Github: Linux"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # https://github.com/dart-lang/sdk/pull/48665
+          # - arch: arm
+          #   platform: linux/arm/v7
+          - arch: arm64
+            platform: linux/arm64
+    needs: [deploy_github_linux]
+    if: "startsWith(github.ref, 'refs/tags/') && github.repository == 'sass/dart-sass-embedded'"
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: arduino/setup-protoc@v1
+        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart run grinder protobuf
+      - uses: docker/setup-qemu-action@v1
+      - name: Deploy
+        run: |
+          docker run --rm \
+            --env "GH_BEARER_TOKEN=$GH_BEARER_TOKEN" \
+            --platform ${{ matrix.platform }} \
+            --volume "$PWD:$PWD" \
+            --workdir "$PWD" \
+            docker.io/library/dart:latest \
+            /bin/sh -c "dart pub get && dart run grinder pkg-github-linux-${{ matrix.arch }}"
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
 
   deploy_github_macos:
@@ -159,7 +192,7 @@ jobs:
   release_embedded_host:
     name: "Release Embedded Host"
     runs-on: ubuntu-latest
-    needs: [deploy_github_linux, deploy_github_macos, deploy_github_windows]
+    needs: [deploy_github_linux, deploy_github_linux_qemu, deploy_github_macos, deploy_github_windows]
     if: "startsWith(github.ref, 'refs/tags/') && github.repository == 'sass/dart-sass-embedded'"
 
     steps:

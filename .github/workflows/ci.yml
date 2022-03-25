@@ -51,11 +51,11 @@ jobs:
         with: {repo: sass/embedded-protocol, path: build/embedded-protocol}
 
       - run: dart pub get
-      - run: dart pub run grinder protobuf
+      - run: dart run grinder protobuf
         env: {UPDATE_SASS_PROTOCOL: false}
-      - run: dart pub run grinder pkg-standalone-dev
+      - run: dart run grinder pkg-standalone-dev
       - name: Run tests
-        run: dart pub run test -r expanded
+        run: dart run test -r expanded
 
   static_analysis:
     name: Static analysis
@@ -90,7 +90,7 @@ jobs:
         with: {repo: sass/embedded-protocol, path: build/embedded-protocol}
 
       - run: dart pub get
-      - run: dart pub run grinder protobuf
+      - run: dart run grinder protobuf
         env: {UPDATE_SASS_PROTOCOL: false}
       - name: Analyze dart
         run: dart analyze --fatal-warnings ./
@@ -117,9 +117,9 @@ jobs:
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - run: dart pub run grinder protobuf
+      - run: dart run grinder protobuf
       - name: Deploy
-        run: dart pub run grinder pkg-github-release pkg-github-linux
+        run: dart run grinder pkg-github-release pkg-github-linux
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
 
   deploy_github_macos:
@@ -134,9 +134,9 @@ jobs:
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - run: dart pub run grinder protobuf
+      - run: dart run grinder protobuf
       - name: Deploy
-        run: dart pub run grinder pkg-github-macos
+        run: dart run grinder pkg-github-macos
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
 
   deploy_github_windows:
@@ -151,9 +151,9 @@ jobs:
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - run: dart pub run grinder protobuf
+      - run: dart run grinder protobuf
       - name: Deploy
-        run: dart pub run grinder pkg-github-windows
+        run: dart run grinder pkg-github-windows
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
 
   release_embedded_host:

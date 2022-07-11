@@ -37,11 +37,9 @@ jobs:
 
       - name: Check out Dart Sass from main HEAD when using -dev dependency
         run: |
-          if [[ ! -d build/dart-sass ]]; then
-            if grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-              git clone https://github.com/sass/dart-sass.git \
-                --depth 1 build/dart-sass
-            fi
+          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
+            git clone https://github.com/sass/dart-sass.git \
+              --depth 1 build/dart-sass
           fi
         shell: bash
 
@@ -106,11 +104,9 @@ jobs:
 
       - name: Check out Dart Sass from main HEAD when using -dev dependency
         run: |
-          if [[ ! -d build/dart-sass ]]; then
-            if grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-              git clone https://github.com/sass/dart-sass.git \
-                --depth 1 build/dart-sass
-            fi
+          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
+            git clone https://github.com/sass/dart-sass.git \
+              --depth 1 build/dart-sass
           fi
         shell: bash
 
@@ -183,11 +179,9 @@ jobs:
 
       - name: Check out Dart Sass from main HEAD when using -dev dependency
         run: |
-          if [[ ! -d build/dart-sass ]]; then
-            if grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-              git clone https://github.com/sass/dart-sass.git \
-                --depth 1 build/dart-sass
-            fi
+          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
+            git clone https://github.com/sass/dart-sass.git \
+              --depth 1 build/dart-sass
           fi
         shell: bash
 

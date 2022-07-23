@@ -277,9 +277,10 @@ jobs:
       matrix:
         include:
           - runner: macos-latest
-            platform: macos-x64
-          - runner: self-hosted
-            platform: macos-arm64
+            platform: macos # Make this "macos-x64" when we separate out "macos-arm64"
+          # arduino/setup-protoc doesn't support ARM64 (arduino/setup-protoc#26)
+          # - runner: self-hosted
+          #   platform: macos-arm64
           - runner: windows-latest
             platform: windows
 

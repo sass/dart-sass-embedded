@@ -227,6 +227,15 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
       - run: dart run grinder protobuf
+      # We need to upload the compiled protobuf rather than recompiling it on
+      # other platforms because arduino/setup-protoc currently) requires Node 12
+      # which doesn't support ARM.
+      - uses: actions/upload-artifact@v3
+        with:
+          name: embedded-protocol
+          path: |
+            build/embedded-protocol
+            lib/src/embedded_sass.*.dart
       - name: Deploy
         run: dart run grinder pkg-github-release pkg-github-linux-ia32 pkg-github-linux-x64
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
@@ -247,23 +256,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
-      - uses: dart-lang/setup-dart@v1
-      - run: dart pub get
-      - run: dart run grinder protobuf
+      - uses: actions/download-artifact@v3
+        with:
+          name: embedded-protocol
       - uses: docker/setup-qemu-action@v2
       - name: Deploy
         run: |
           docker run --rm \
             --env "GH_BEARER_TOKEN=$GH_BEARER_TOKEN" \
             --platform ${{ matrix.platform }} \
-            --mount type=bind,source="$PWD",target="$PWD" \
-            --mount type=tmpfs,destination=/root/.pub-cache \
-            --mount type=tmpfs,destination=/tmp \
+            --volume "$PWD:$PWD" \
             --workdir "$PWD" \
             docker.io/library/dart:latest \
-            /bin/sh -c "cp -R . /tmp/workspace && cd /tmp/workspace && dart pub get && dart run grinder pkg-github-linux-${{ matrix.arch }}"
+            /bin/sh -c "dart pub get && dart run grinder pkg-github-linux-${{ matrix.arch }}"
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
 
   deploy_github:
@@ -283,11 +288,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v3
+        with:
+          name: embedded-protocol
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - run: dart run grinder protobuf
       - name: Deploy
         run: dart run grinder pkg-github-${{ matrix.platform }}
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}

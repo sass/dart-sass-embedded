@@ -229,6 +229,9 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
       - run: dart run grinder protobuf
+      # We need to upload the compiled protobuf rather than recompiling it on
+      # other platforms because arduino/setup-protoc currently) requires Node 12
+      # which doesn't support ARM.
       - uses: actions/upload-artifact@v3
         with:
           name: embedded-protocol

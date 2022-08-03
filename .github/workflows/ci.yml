@@ -284,7 +284,7 @@ jobs:
             architecture: x64
           - runner: self-hosted
             platform: macos-arm64
-            architecture: arm
+            architecture: arm64
           - runner: windows-latest
             platform: windows
             architecture: x64

@@ -3,20 +3,29 @@
 // https://opensource.org/licenses/MIT.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:path/path.dart' as p;
 import 'package:protobuf/protobuf.dart';
+import 'package:sass/sass.dart' as sass;
 import 'package:stack_trace/stack_trace.dart';
-import 'package:stream_channel/stream_channel.dart';
 
 import 'embedded_sass.pb.dart';
+import 'function_registry.dart';
+import 'host_callable.dart';
+import 'importer/file.dart';
+import 'importer/host.dart';
+import 'logger.dart';
 import 'utils.dart';
 
 /// A class that dispatches messages to and from the host.
 class Dispatcher {
-  /// The channel of encoded protocol buffers, connected to the host.
-  final StreamChannel<Uint8List> _channel;
+  /// The stream of messages sent from the host to the compiler.
+  final Stream<InboundMessage> _stream;
+
+  /// The sink for sending messages from the compiler to the host.
+  final StreamSink<OutboundMessage> _sink;
 
   /// Completers awaiting responses to outbound requests.
   ///
@@ -27,7 +36,7 @@ class Dispatcher {
 
   /// Creates a [Dispatcher] that sends and receives encoded protocol buffers
   /// over [channel].
-  Dispatcher(this._channel);
+  Dispatcher(this._stream, this._sink);
 
   /// Listens for incoming `CompileRequests` and passes them to [callback].
   ///
@@ -37,35 +46,15 @@ class Dispatcher {
   /// `id` fields; the [Dispatcher] will take care of that.
   ///
   /// This may only be called once.
-  void listen(
-      FutureOr<OutboundMessage_CompileResponse> callback(
-          InboundMessage_CompileRequest request)) {
-    _channel.stream.listen((binaryMessage) async {
-      // Wait a single microtask tick so that we're running in a separate
-      // microtask from the initial request dispatch. Otherwise, [waitFor] will
-      // deadlock the event loop fiber that would otherwise be checking stdin
-      // for new input.
-      await Future<void>.value();
-
-      InboundMessage? message;
+  void listen() {
+    _stream.listen((message) async {
       try {
-        try {
-          message = InboundMessage.fromBuffer(binaryMessage);
-        } on InvalidProtocolBufferException catch (error) {
-          throw _parseError(error.message);
-        }
-
         switch (message.whichMessage()) {
-          case InboundMessage_Message.versionRequest:
-            var request = message.versionRequest;
-            var response = versionResponse();
-            response.id = request.id;
-            _send(OutboundMessage()..versionResponse = response);
-            break;
+          // VersionRequest is handled by the isolate dispatcher.
 
           case InboundMessage_Message.compileRequest:
             var request = message.compileRequest;
-            var response = await callback(request);
+            var response = await _compile(request);
             response.id = request.id;
             _send(OutboundMessage()..compileResponse = response);
             break;
@@ -91,10 +80,10 @@ class Dispatcher {
             break;
 
           case InboundMessage_Message.notSet:
-            throw _parseError("InboundMessage.message is not set.");
+            throw parseError("InboundMessage.message is not set.");
 
           default:
-            throw _parseError(
+            throw parseError(
                 "Unknown message type: ${message.toDebugString()}");
         }
       } on ProtocolError catch (error) {
@@ -105,7 +94,7 @@ class Dispatcher {
         sendError(error);
         // PROTOCOL error from https://bit.ly/2poTt90
         exitCode = 76;
-        _channel.sink.close();
+        _sink.close();
       } catch (error, stackTrace) {
         var errorMessage = "$error\n${Chain.forTrace(stackTrace)}";
         stderr.write("Internal compiler error: $errorMessage");
@@ -113,9 +102,126 @@ class Dispatcher {
           ..type = ProtocolErrorType.INTERNAL
           ..id = _inboundId(message) ?? errorId
           ..message = errorMessage);
-        _channel.sink.close();
+        _sink.close();
       }
     });
+  }
+
+  Future<OutboundMessage_CompileResponse> _compile(
+      InboundMessage_CompileRequest request) async {
+    var functions = FunctionRegistry();
+
+    var style = request.style == OutputStyle.COMPRESSED
+        ? sass.OutputStyle.compressed
+        : sass.OutputStyle.expanded;
+    var logger = Logger(this, request.id,
+        color: request.alertColor, ascii: request.alertAscii);
+
+    try {
+      var importers = request.importers.map((importer) =>
+          _decodeImporter(request, importer) ??
+          (throw mandatoryError("Importer.importer")));
+
+      var globalFunctions = request.globalFunctions.map((signature) {
+        try {
+          return hostCallable(this, functions, request.id, signature);
+        } on sass.SassException catch (error) {
+          throw paramsError('CompileRequest.global_functions: $error');
+        }
+      });
+
+      late sass.CompileResult result;
+      switch (request.whichInput()) {
+        case InboundMessage_CompileRequest_Input.string:
+          var input = request.string;
+          result = sass.compileStringToResult(input.source,
+              color: request.alertColor,
+              logger: logger,
+              importers: importers,
+              importer: _decodeImporter(request, input.importer) ??
+                  (input.url.startsWith("file:") ? null : sass.Importer.noOp),
+              functions: globalFunctions,
+              syntax: syntaxToSyntax(input.syntax),
+              style: style,
+              url: input.url.isEmpty ? null : input.url,
+              quietDeps: request.quietDeps,
+              verbose: request.verbose,
+              sourceMap: request.sourceMap,
+              charset: request.charset);
+          break;
+
+        case InboundMessage_CompileRequest_Input.path:
+          if (request.path.isEmpty) {
+            throw mandatoryError("CompileRequest.Input.path");
+          }
+
+          try {
+            result = sass.compileToResult(request.path,
+                color: request.alertColor,
+                logger: logger,
+                importers: importers,
+                functions: globalFunctions,
+                style: style,
+                quietDeps: request.quietDeps,
+                verbose: request.verbose,
+                sourceMap: request.sourceMap,
+                charset: request.charset);
+          } on FileSystemException catch (error) {
+            return OutboundMessage_CompileResponse()
+              ..failure = (OutboundMessage_CompileResponse_CompileFailure()
+                ..message = error.path == null
+                    ? error.message
+                    : "${error.message}: ${error.path}"
+                ..span = (SourceSpan()
+                  ..start = SourceSpan_SourceLocation()
+                  ..end = SourceSpan_SourceLocation()
+                  ..url = p.toUri(request.path).toString()));
+          }
+          break;
+
+        case InboundMessage_CompileRequest_Input.notSet:
+          throw mandatoryError("CompileRequest.input");
+      }
+
+      var success = OutboundMessage_CompileResponse_CompileSuccess()
+        ..css = result.css
+        ..loadedUrls.addAll(result.loadedUrls.map((url) => url.toString()));
+
+      var sourceMap = result.sourceMap;
+      if (sourceMap != null) {
+        success.sourceMap = json.encode(sourceMap.toJson(
+            includeSourceContents: request.sourceMapIncludeSources));
+      }
+      return OutboundMessage_CompileResponse()..success = success;
+    } on sass.SassException catch (error) {
+      var formatted = withGlyphs(
+          () => error.toString(color: request.alertColor),
+          ascii: request.alertAscii);
+      return OutboundMessage_CompileResponse()
+        ..failure = (OutboundMessage_CompileResponse_CompileFailure()
+          ..message = error.message
+          ..span = protofySpan(error.span)
+          ..stackTrace = error.trace.toString()
+          ..formatted = formatted);
+    }
+  }
+
+  /// Converts [importer] into a [sass.Importer].
+  sass.Importer? _decodeImporter(InboundMessage_CompileRequest request,
+      InboundMessage_CompileRequest_Importer importer) {
+    switch (importer.whichImporter()) {
+      case InboundMessage_CompileRequest_Importer_Importer.path:
+        return sass.FilesystemImporter(importer.path);
+
+      case InboundMessage_CompileRequest_Importer_Importer.importerId:
+        return HostImporter(this, request.id, importer.importerId);
+
+      case InboundMessage_CompileRequest_Importer_Importer.fileImporterId:
+        return FileImporter(this, request.id, importer.fileImporterId);
+
+      case InboundMessage_CompileRequest_Importer_Importer.notSet:
+        return null;
+    }
   }
 
   /// Sends [event] to the host.
@@ -193,13 +299,7 @@ class Dispatcher {
   }
 
   /// Sends [message] to the host.
-  void _send(OutboundMessage message) =>
-      _channel.sink.add(message.writeToBuffer());
-
-  /// Returns a [ProtocolError] with type `PARSE` and the given [message].
-  ProtocolError _parseError(String message) => ProtocolError()
-    ..type = ProtocolErrorType.PARSE
-    ..message = message;
+  void _send(OutboundMessage message) => _sink.add(message);
 
   /// Returns the id for [message] if it it's a request, or `null`
   /// otherwise.
@@ -213,6 +313,7 @@ class Dispatcher {
     }
   }
 
+  // TODO before landing: Make this an extension method
   /// Sets the id for [message] to [id].
   ///
   /// Throws an [ArgumentError] if [message] doesn't have an id field.
@@ -239,15 +340,5 @@ class Dispatcher {
       default:
         throw ArgumentError("Unknown message type: ${message.toDebugString()}");
     }
-  }
-
-  /// Creates a [OutboundMessage_VersionResponse]
-  static OutboundMessage_VersionResponse versionResponse() {
-    return OutboundMessage_VersionResponse()
-      ..protocolVersion = const String.fromEnvironment("protocol-version")
-      ..compilerVersion = const String.fromEnvironment("compiler-version")
-      ..implementationVersion =
-          const String.fromEnvironment("implementation-version")
-      ..implementationName = "Dart Sass";
   }
 }

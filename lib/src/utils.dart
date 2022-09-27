@@ -27,6 +27,11 @@ ProtocolError paramsError(String message) => ProtocolError()
   ..type = ProtocolErrorType.PARAMS
   ..message = message;
 
+/// Returns a [ProtocolError] with type `PARSE` and the given [message].
+ProtocolError parseError(String message) => ProtocolError()
+  ..type = ProtocolErrorType.PARSE
+  ..message = message;
+
 /// Converts a Dart source span to a protocol buffer source span.
 proto.SourceSpan protofySpan(SourceSpan span) {
   var protoSpan = proto.SourceSpan()

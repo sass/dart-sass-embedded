@@ -27,16 +27,22 @@ class Dispatcher {
   /// The sink for sending messages from the compiler to the host.
   final StreamSink<OutboundMessage> _sink;
 
+  /// The ID to use for outbound requests.
+  ///
+  /// This is always the same ID because a single isolate only ever has one
+  /// outbound request active at a time.
+  final int _outboundId;
+
   /// Completers awaiting responses to outbound requests.
   ///
   /// The completers are located at indexes in this list matching the request
   /// IDs. `null` elements indicate IDs whose requests have been responded to,
   /// and which are therefore free to re-use.
-  final _outstandingRequests = <Completer<GeneratedMessage>?>[];
+  Completer<GeneratedMessage>? _outstandingRequest;
 
   /// Creates a [Dispatcher] that sends and receives encoded protocol buffers
   /// over [channel].
-  Dispatcher(this._stream, this._sink);
+  Dispatcher(this._stream, this._sink, this._outboundId);
 
   /// Listens for incoming `CompileRequests` and passes them to [callback].
   ///
@@ -255,25 +261,10 @@ class Dispatcher {
   /// Sends [request] to the host and returns the message sent in response.
   Future<T> _sendRequest<T extends GeneratedMessage>(
       OutboundMessage request) async {
-    var id = _nextRequestId();
-    _setOutboundId(request, id);
+    _setOutboundId(request, _outboundId);
     _send(request);
 
-    var completer = Completer<T>();
-    _outstandingRequests[id] = completer;
-    return completer.future;
-  }
-
-  /// Returns an available request ID, and guarantees that its slot is available
-  /// in [_outstandingRequests].
-  int _nextRequestId() {
-    for (var i = 0; i < _outstandingRequests.length; i++) {
-      if (_outstandingRequests[i] == null) return i;
-    }
-
-    // If there are no empty slots, add another one.
-    _outstandingRequests.add(null);
-    return _outstandingRequests.length - 1;
+    return (_outstandingRequest = Completer<T>()).future;
   }
 
   /// Dispatches [response] to the appropriate outstanding request.
@@ -281,13 +272,9 @@ class Dispatcher {
   /// Throws an error if there's no outstanding request with the given [id] or
   /// if that request is expecting a different type of response.
   void _dispatchResponse<T extends GeneratedMessage>(int id, T response) {
-    Completer<GeneratedMessage>? completer;
-    if (id < _outstandingRequests.length) {
-      completer = _outstandingRequests[id];
-      _outstandingRequests[id] = null;
-    }
-
-    if (completer == null) {
+    var completer = _outstandingRequest;
+    _outstandingRequest = null;
+    if (completer == null || id != _outboundId) {
       throw paramsError(
           "Response ID $id doesn't match any outstanding requests.");
     } else if (completer is! Completer<T>) {

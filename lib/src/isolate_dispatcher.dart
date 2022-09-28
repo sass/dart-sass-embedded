@@ -2,17 +2,15 @@
 // MIT-style license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-import 'dart:io';
-
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:async/async.dart';
 import 'package:protobuf/protobuf.dart';
-import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/isolate_channel.dart';
 import 'package:stream_channel/stream_channel.dart';
+import 'package:tuple/tuple.dart';
 
 import 'embedded_sass.pb.dart';
 import 'utils.dart';
@@ -60,22 +58,22 @@ class IsolateDispatcher {
 
         case InboundMessage_Message.canonicalizeResponse:
           var response = message.canonicalizeResponse;
-          _dispatchResponse(response.id, response);
+          _dispatchResponse(response.id, message);
           break;
 
         case InboundMessage_Message.importResponse:
           var response = message.importResponse;
-          _dispatchResponse(response.id, response);
+          _dispatchResponse(response.id, message);
           break;
 
         case InboundMessage_Message.fileImportResponse:
           var response = message.fileImportResponse;
-          _dispatchResponse(response.id, response);
+          _dispatchResponse(response.id, message);
           break;
 
         case InboundMessage_Message.functionCallResponse:
           var response = message.functionCallResponse;
-          _dispatchResponse(response.id, response);
+          _dispatchResponse(response.id, message);
           break;
 
         case InboundMessage_Message.notSet:
@@ -90,7 +88,8 @@ class IsolateDispatcher {
   Future<OutboundMessage_CompileResponse> _compile(
       InboundMessage compileRequest) async {
     var receivePort = ReceivePort();
-    var isolate = await Isolate.spawn(_isolateMain, receivePort.sendPort);
+    await Isolate.spawn(
+        _isolateMain, Tuple2(receivePort.sendPort, _allIsolates.length));
 
     var channel = IsolateChannel<GeneratedMessage>.connectReceive(receivePort);
     _allIsolates.add(channel.sink);
@@ -172,10 +171,11 @@ class IsolateDispatcher {
       _channel.sink.add(message.writeToBuffer());
 }
 
-void _isolateMain(SendPort sendPort) {
-  var channel = IsolateChannel<GeneratedMessage>.connectSend(sendPort);
+void _isolateMain(Tuple2<SendPort, int> args) {
+  var channel = IsolateChannel<GeneratedMessage>.connectSend(args.item1);
   Dispatcher(
       channel.stream.cast<InboundMessage>(),
       channel.sink.transform(StreamSinkTransformer.fromHandlers(
-          handleData: (data, sink) => sink.add(data)))).listen();
+          handleData: (data, sink) => sink.add(data))),
+        args.item2).listen();
 }

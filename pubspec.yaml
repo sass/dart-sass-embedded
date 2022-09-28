@@ -20,6 +20,7 @@ dependencies:
   stack_trace: ^1.6.0
   stream_channel: ">=1.6.0 <3.0.0"
   term_glyph: ^1.0.0
+  tuple: ^2.0.0
   typed_data: ^1.1.0
 
 dev_dependencies:

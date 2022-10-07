@@ -30,6 +30,8 @@ class IsolateDispatcher {
   /// A `null` element indicates an ID whose request has been responded to.
   final _outstandingRequests = <StreamSink<GeneratedMessage>?>[];
 
+  var _nextIsolateId = 0;
+
   IsolateDispatcher(this._channel);
 
   void listen() {
@@ -89,7 +91,7 @@ class IsolateDispatcher {
       InboundMessage compileRequest) async {
     var receivePort = ReceivePort();
     await Isolate.spawn(
-        _isolateMain, Tuple2(receivePort.sendPort, _allIsolates.length));
+        _isolateMain, Tuple2(receivePort.sendPort, _nextIsolateId++));
 
     var channel = IsolateChannel<GeneratedMessage>.connectReceive(receivePort);
     _allIsolates.add(channel.sink);

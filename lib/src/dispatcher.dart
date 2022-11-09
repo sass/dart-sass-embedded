@@ -103,9 +103,11 @@ class Dispatcher {
         if (error.id != errorId) stderr.write(" with request ${error.id}");
         stderr.writeln(": ${error.message}");
         sendError(error);
-        // PROTOCOL error from https://bit.ly/2poTt90
-        exitCode = 76;
-        _channel.sink.close();
+        if (error.type != ProtocolErrorType.PARAMS) {
+          // PROTOCOL error from https://bit.ly/2poTt90
+          exitCode = 76;
+          _channel.sink.close();
+        }
       } catch (error, stackTrace) {
         var errorMessage = "$error\n${Chain.forTrace(stackTrace)}";
         stderr.write("Internal compiler error: $errorMessage");

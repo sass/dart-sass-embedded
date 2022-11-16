@@ -21,74 +21,34 @@ void main() {
     _process = await EmbeddedProcess.start();
   });
 
-  group("emits a protocol error for a custom function with a signature", () {
+  group("emits a compile failure for a custom function with a signature", () {
     test("that's empty", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r""]));
-      await expectParamsError(
-          _process,
-          0,
-          'CompileRequest.global_functions: Error: "" is missing "("\n'
-          '  ╷\n'
-          '1 │ \n'
-          '  │ ^\n'
-          '  ╵\n'
-          '  - 1:1  root stylesheet');
+      await _expectFunctionError(_process, '"" is missing "("');
       await _process.kill();
     });
 
     test("that's just a name", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo"]));
-      await expectParamsError(
-          _process,
-          0,
-          'CompileRequest.global_functions: Error: "foo" is missing "("\n'
-          '  ╷\n'
-          '1 │ foo\n'
-          '  │ ^^^\n'
-          '  ╵\n'
-          '  - 1:1  root stylesheet');
+      await _expectFunctionError(_process, '"foo" is missing "("');
       await _process.kill();
     });
 
     test("without a closing paren", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo($bar"]));
-      await expectParamsError(
-          _process,
-          0,
-          'CompileRequest.global_functions: Error: "foo(\$bar" doesn\'t end with ")"\n'
-          '  ╷\n'
-          '1 │ foo(\$bar\n'
-          '  │         ^\n'
-          '  ╵\n'
-          '  - 1:9  root stylesheet');
+      await _expectFunctionError(_process, '"foo(\$bar" doesn\'t end with ")"');
       await _process.kill();
     });
 
     test("with text after the closing paren", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo() "]));
-      await expectParamsError(
-          _process,
-          0,
-          'CompileRequest.global_functions: Error: "foo() " doesn\'t end with ")"\n'
-          '  ╷\n'
-          '1 │ foo() \n'
-          '  │       ^\n'
-          '  ╵\n'
-          '  - 1:7  root stylesheet');
+      await _expectFunctionError(_process, '"foo() " doesn\'t end with ")"');
       await _process.kill();
     });
 
     test("with invalid arguments", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo($)"]));
-      await expectParamsError(
-          _process,
-          0,
-          'CompileRequest.global_functions: Error: Expected identifier.\n'
-          '  ╷\n'
-          '1 │ @function foo(\$) {\n'
-          '  │                ^\n'
-          '  ╵\n'
-          '  - 1:16  root stylesheet');
+      await _expectFunctionError(_process, 'Expected identifier.');
       await _process.kill();
     });
   });
@@ -1989,3 +1949,11 @@ Value _hsl(num hue, num saturation, num lightness, double alpha) => Value()
     ..saturation = saturation * 1.0
     ..lightness = lightness * 1.0
     ..alpha = alpha);
+
+/// Asserts that [process] emits a [CompileFailure] result with the given
+/// [message] on its protobuf stream and causes the compilation to fail.
+Future<void> _expectFunctionError(
+    EmbeddedProcess process, Object message) async {
+  var failure = getCompileFailure(await process.outbound.next);
+  expect(failure.message, equals(message));
+}

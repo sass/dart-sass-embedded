@@ -54,6 +54,18 @@ void main() {
           "InboundMessage_CanonicalizeResponse.");
       await process.kill();
     });
+  });
+
+  group("emits a compile failure", () {
+    late OutboundMessage_FileImportRequest request;
+
+    setUp(() async {
+      process.inbound.add(compileString("@import 'other'", importers: [
+        InboundMessage_CompileRequest_Importer()..fileImporterId = 1
+      ]));
+
+      request = getFileImportRequest(await process.outbound.next);
+    });
 
     group("for a FileImportResponse with a URL", () {
       test("that's empty", () async {
@@ -62,7 +74,7 @@ void main() {
             ..id = request.id
             ..fileUrl = ""));
 
-        await _expectImportParamsError(
+        await _expectImportError(
             process, 'FileImportResponse.file_url must be absolute, was ""');
         await process.kill();
       });
@@ -73,7 +85,7 @@ void main() {
             ..id = request.id
             ..fileUrl = "foo"));
 
-        await _expectImportParamsError(
+        await _expectImportError(
             process, 'FileImportResponse.file_url must be absolute, was "foo"');
         await process.kill();
       });
@@ -84,7 +96,7 @@ void main() {
             ..id = request.id
             ..fileUrl = "other:foo"));
 
-        await _expectImportParamsError(process,
+        await _expectImportError(process,
             'FileImportResponse.file_url must be a file: URL, was "other:foo"');
         await process.kill();
       });
@@ -268,14 +280,10 @@ void main() {
   });
 }
 
-/// Asserts that [process] emits a [ProtocolError] params error with the given
+/// Asserts that [process] emits a [CompileFailure] result with the given
 /// [message] on its protobuf stream and causes the compilation to fail.
-Future<void> _expectImportParamsError(
-    EmbeddedProcess process, Object message) async {
-  await expectLater(process.outbound,
-      emits(isProtocolError(errorId, ProtocolErrorType.PARAMS, message)));
-
+Future<void> _expectImportError(EmbeddedProcess process, Object message) async {
   var failure = getCompileFailure(await process.outbound.next);
-  expect(failure.message, equals('Protocol error: $message'));
+  expect(failure.message, equals(message));
   expect(failure.span.text, equals("'other'"));
 }

@@ -64,7 +64,7 @@ void main() {
   });
 
   group("canonicalization", () {
-    group("emits a protocol error", () {
+    group("emits a compile failure", () {
       test("for a canonicalize response with an empty URL", () async {
         process.inbound.add(compileString("@import 'other'", importers: [
           InboundMessage_CompileRequest_Importer()..importerId = 1
@@ -76,7 +76,7 @@ void main() {
             ..id = request.id
             ..url = ""));
 
-        await _expectImportParamsError(
+        await _expectImportError(
             process, 'CanonicalizeResponse.url must be absolute, was ""');
         await process.kill();
       });
@@ -92,7 +92,7 @@ void main() {
             ..id = request.id
             ..url = "relative"));
 
-        await _expectImportParamsError(process,
+        await _expectImportError(process,
             'CanonicalizeResponse.url must be absolute, was "relative"');
         await process.kill();
       });
@@ -216,7 +216,7 @@ void main() {
   });
 
   group("importing", () {
-    group("emits a protocol error", () {
+    group("emits a compile failure", () {
       test("for an import result with a relative sourceMapUrl", () async {
         process.inbound.add(compileString("@import 'other'", importers: [
           InboundMessage_CompileRequest_Importer()..importerId = 1
@@ -230,7 +230,7 @@ void main() {
             ..success = (InboundMessage_ImportResponse_ImportSuccess()
               ..sourceMapUrl = "relative")));
 
-        await _expectImportParamsError(
+        await _expectImportError(
             process,
             'ImportResponse.success.source_map_url must be absolute, was '
             '"relative"');
@@ -510,14 +510,10 @@ Future<void> _canonicalize(EmbeddedProcess process) async {
       ..url = "custom:other"));
 }
 
-/// Asserts that [process] emits a [ProtocolError] params error with the given
+/// Asserts that [process] emits a [CompileFailure] result with the given
 /// [message] on its protobuf stream and causes the compilation to fail.
-Future<void> _expectImportParamsError(
-    EmbeddedProcess process, Object message) async {
-  await expectLater(process.outbound,
-      emits(isProtocolError(errorId, ProtocolErrorType.PARAMS, message)));
-
+Future<void> _expectImportError(EmbeddedProcess process, Object message) async {
   var failure = getCompileFailure(await process.outbound.next);
-  expect(failure.message, equals('Protocol error: $message'));
+  expect(failure.message, equals(message));
   expect(failure.span.text, equals("'other'"));
 }

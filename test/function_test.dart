@@ -24,31 +24,36 @@ void main() {
   group("emits a compile failure for a custom function with a signature", () {
     test("that's empty", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r""]));
-      await _expectFunctionError(_process, '"" is missing "("');
+      await _expectFunctionError(
+          _process, r'Invalid signature "": Expected identifier.');
       await _process.kill();
     });
 
     test("that's just a name", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo"]));
-      await _expectFunctionError(_process, '"foo" is missing "("');
+      await _expectFunctionError(
+          _process, r'Invalid signature "foo": expected "(".');
       await _process.kill();
     });
 
     test("without a closing paren", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo($bar"]));
-      await _expectFunctionError(_process, '"foo(\$bar" doesn\'t end with ")"');
+      await _expectFunctionError(
+          _process, r'Invalid signature "foo($bar": expected ")".');
       await _process.kill();
     });
 
     test("with text after the closing paren", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo() "]));
-      await _expectFunctionError(_process, '"foo() " doesn\'t end with ")"');
+      await _expectFunctionError(
+          _process, r'Invalid signature "foo() ": expected no more input.');
       await _process.kill();
     });
 
     test("with invalid arguments", () async {
       _process.inbound.add(compileString("a {b: c}", functions: [r"foo($)"]));
-      await _expectFunctionError(_process, 'Expected identifier.');
+      await _expectFunctionError(
+          _process, r'Invalid signature "foo($)": Expected identifier.');
       await _process.kill();
     });
   });
@@ -1808,25 +1813,28 @@ void main() {
         }
 
         test("that's empty", () async {
-          await expectSignatureError("", '"" is missing "("');
+          await expectSignatureError(
+              "", r'Invalid signature "": Expected identifier.');
         });
 
         test("that's just a name", () async {
-          await expectSignatureError("foo", '"foo" is missing "("');
+          await expectSignatureError(
+              "foo", r'Invalid signature "foo": expected "(".');
         });
 
         test("without a closing paren", () async {
           await expectSignatureError(
-              r"foo($bar", '"foo(\$bar" doesn\'t end with ")"');
+              r"foo($bar", r'Invalid signature "foo($bar": expected ")".');
         });
 
         test("with text after the closing paren", () async {
-          await expectSignatureError(
-              r"foo() ", '"foo() " doesn\'t end with ")"');
+          await expectSignatureError(r"foo() ",
+              r'Invalid signature "foo() ": expected no more input.');
         });
 
         test("with invalid arguments", () async {
-          await expectSignatureError(r"foo($)", 'Expected identifier.');
+          await expectSignatureError(
+              r"foo($)", r'Invalid signature "foo($)": Expected identifier.');
         });
       });
     });

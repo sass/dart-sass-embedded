@@ -75,7 +75,7 @@ void main() {
             ..fileUrl = ""));
 
         await _expectImportError(
-            process, 'FileImportResponse.file_url must be absolute, was ""');
+            process, 'The file importer must return an absolute URL, was ""');
         await process.kill();
       });
 
@@ -85,8 +85,8 @@ void main() {
             ..id = request.id
             ..fileUrl = "foo"));
 
-        await _expectImportError(
-            process, 'FileImportResponse.file_url must be absolute, was "foo"');
+        await _expectImportError(process,
+            'The file importer must return an absolute URL, was "foo"');
         await process.kill();
       });
 
@@ -97,7 +97,7 @@ void main() {
             ..fileUrl = "other:foo"));
 
         await _expectImportError(process,
-            'FileImportResponse.file_url must be a file: URL, was "other:foo"');
+            'The file importer must return a file: URL, was "other:foo"');
         await process.kill();
       });
     });

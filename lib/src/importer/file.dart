@@ -43,10 +43,9 @@ class FileImporter extends ImporterBase {
 
       switch (response.whichResult()) {
         case InboundMessage_FileImportResponse_Result.fileUrl:
-          var url =
-              parseAbsoluteUrl("FileImportResponse.file_url", response.fileUrl);
+          var url = parseAbsoluteUrl("The file importer", response.fileUrl);
           if (url.scheme != 'file') {
-            throw 'FileImportResponse.file_url must be a file: URL, was "$url"';
+            throw 'The file importer must return a file: URL, was "$url"';
           }
 
           return _filesystemImporter.canonicalize(url);

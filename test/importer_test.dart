@@ -77,7 +77,7 @@ void main() {
             ..url = ""));
 
         await _expectImportError(
-            process, 'CanonicalizeResponse.url must be absolute, was ""');
+            process, 'The importer must return an absolute URL, was ""');
         await process.kill();
       });
 
@@ -93,7 +93,7 @@ void main() {
             ..url = "relative"));
 
         await _expectImportError(process,
-            'CanonicalizeResponse.url must be absolute, was "relative"');
+            'The importer must return an absolute URL, was "relative"');
         await process.kill();
       });
     });
@@ -230,10 +230,8 @@ void main() {
             ..success = (InboundMessage_ImportResponse_ImportSuccess()
               ..sourceMapUrl = "relative")));
 
-        await _expectImportError(
-            process,
-            'ImportResponse.success.source_map_url must be absolute, was '
-            '"relative"');
+        await _expectImportError(process,
+            'The importer must return an absolute URL, was "relative"');
         await process.kill();
       });
     });

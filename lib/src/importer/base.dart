@@ -19,17 +19,17 @@ abstract class ImporterBase extends sass.Importer {
   /// Parses [url] as a [Uri] and throws an error if it's invalid or relative
   /// (including root-relative).
   ///
-  /// The [field] name is used in the error message if one is thrown.
+  /// The [source] name is used in the error message if one is thrown.
   @protected
-  Uri parseAbsoluteUrl(String field, String url) {
+  Uri parseAbsoluteUrl(String source, String url) {
     Uri parsedUrl;
     try {
       parsedUrl = Uri.parse(url);
     } on FormatException catch (error) {
-      throw "$field is invalid: $error";
+      throw '$source must return a URL, was "$url"';
     }
 
     if (parsedUrl.scheme.isNotEmpty) return parsedUrl;
-    throw '$field must be absolute, was "$parsedUrl"';
+    throw '$source must return an absolute URL, was "$parsedUrl"';
   }
 }

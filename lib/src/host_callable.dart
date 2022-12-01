@@ -25,8 +25,8 @@ import 'utils.dart';
 sass.Callable hostCallable(Dispatcher dispatcher, FunctionRegistry functions,
     int compilationId, String signature,
     {int? id}) {
-  sass.Callable? callable;
-  callable = sass.Callable.host(signature, (arguments) {
+  late sass.Callable callable;
+  callable = sass.Callable.fromSignature(signature, (arguments) {
     var protofier = Protofier(dispatcher, functions, compilationId);
     var request = OutboundMessage_FunctionCallRequest()
       ..compilationId = compilationId
@@ -36,7 +36,7 @@ sass.Callable hostCallable(Dispatcher dispatcher, FunctionRegistry functions,
     if (id != null) {
       request.functionId = id;
     } else {
-      request.name = callable!.name;
+      request.name = callable.name;
     }
 
     // ignore: deprecated_member_use

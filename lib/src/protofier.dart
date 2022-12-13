@@ -50,9 +50,9 @@ class Protofier {
     } else if (value is sass.SassColor) {
       if (value.space == sass.ColorSpace.hsl) {
         result.hslColor = Value_HslColor()
-          ..hue = value.channel('hue') * 1.0
-          ..saturation = value.channel('saturation') * 1.0
-          ..lightness = value.channel('lightness') * 1.0
+          ..hue = value.channel('hue') % 360
+          ..saturation = value.channel('saturation')
+          ..lightness = value.channel('lightness')
           ..alpha = value.alpha * 1.0;
       } else {
         result.rgbColor = Value_RgbColor()
@@ -186,129 +186,127 @@ class Protofier {
 
   /// Converts [value] to its Sass representation.
   sass.Value _deprotofy(Value value) {
-    try {
-      switch (value.whichValue()) {
-        case Value_Value.string:
-          return value.string.text.isEmpty
-              ? sass.SassString.empty(quotes: value.string.quoted)
-              : sass.SassString(value.string.text, quotes: value.string.quoted);
+    switch (value.whichValue()) {
+      case Value_Value.string:
+        return value.string.text.isEmpty
+            ? sass.SassString.empty(quotes: value.string.quoted)
+            : sass.SassString(value.string.text, quotes: value.string.quoted);
 
-        case Value_Value.number:
-          return _deprotofyNumber(value.number);
+      case Value_Value.number:
+        return _deprotofyNumber(value.number);
 
-        case Value_Value.rgbColor:
-          return sass.SassColor.rgb(value.rgbColor.red, value.rgbColor.green,
-              value.rgbColor.blue, value.rgbColor.alpha);
+      case Value_Value.rgbColor:
+        return sass.SassColor.rgb(
+            _checkBounds(value.rgbColor.red, 'RgbColor.red', 0, 255),
+            _checkBounds(value.rgbColor.green, 'RgbColor.green', 0, 255),
+            _checkBounds(value.rgbColor.blue, 'RgbColor.blue', 0, 255),
+            _checkBounds(value.rgbColor.alpha, 'RgbColor.alpha', 0, 1));
 
-        case Value_Value.hslColor:
-          return sass.SassColor.hsl(
-              value.hslColor.hue,
-              value.hslColor.saturation,
-              value.hslColor.lightness,
-              value.hslColor.alpha);
+      case Value_Value.hslColor:
+        return sass.SassColor.hsl(
+            value.hslColor.hue,
+            _checkBounds(
+                value.hslColor.saturation, 'HslColor.saturation', 0, 100),
+            _checkBounds(
+                value.hslColor.lightness, 'HslColor.lightness', 0, 100),
+            _checkBounds(value.hslColor.alpha, 'HslColor.alpha', 0, 1));
 
-        case Value_Value.hwbColor:
-          return sass.SassColor.hwb(
-              value.hwbColor.hue,
-              value.hwbColor.whiteness,
-              value.hwbColor.blackness,
-              value.hwbColor.alpha);
+      case Value_Value.hwbColor:
+        return sass.SassColor.hwb(
+            value.hwbColor.hue,
+            _checkBounds(
+                value.hwbColor.whiteness, 'HwbColor.whiteness', 0, 100),
+            _checkBounds(
+                value.hwbColor.blackness, 'HwbColor.blackness', 0, 100),
+            _checkBounds(value.hwbColor.alpha, 'HwbColor.alpha', 0, 1));
 
-        case Value_Value.argumentList:
-          if (value.argumentList.id != 0) {
-            return _argumentListForId(value.argumentList.id);
-          }
+      case Value_Value.argumentList:
+        if (value.argumentList.id != 0) {
+          return _argumentListForId(value.argumentList.id);
+        }
 
-          var separator = _deprotofySeparator(value.argumentList.separator);
-          var length = value.argumentList.contents.length;
-          if (separator == sass.ListSeparator.undecided && length > 1) {
-            throw paramsError(
-                "List $value can't have an undecided separator because it has "
-                "$length elements");
-          }
+        var separator = _deprotofySeparator(value.argumentList.separator);
+        var length = value.argumentList.contents.length;
+        if (separator == sass.ListSeparator.undecided && length > 1) {
+          throw paramsError(
+              "List $value can't have an undecided separator because it has "
+              "$length elements");
+        }
 
-          return sass.SassArgumentList([
-            for (var element in value.argumentList.contents) _deprotofy(element)
-          ], {
-            for (var entry in value.argumentList.keywords.entries)
-              entry.key: _deprotofy(entry.value)
-          }, separator);
+        return sass.SassArgumentList([
+          for (var element in value.argumentList.contents) _deprotofy(element)
+        ], {
+          for (var entry in value.argumentList.keywords.entries)
+            entry.key: _deprotofy(entry.value)
+        }, separator);
 
-        case Value_Value.list:
-          var separator = _deprotofySeparator(value.list.separator);
-          if (value.list.contents.isEmpty) {
-            return sass.SassList.empty(
-                separator: separator, brackets: value.list.hasBrackets);
-          }
+      case Value_Value.list:
+        var separator = _deprotofySeparator(value.list.separator);
+        if (value.list.contents.isEmpty) {
+          return sass.SassList.empty(
+              separator: separator, brackets: value.list.hasBrackets);
+        }
 
-          var length = value.list.contents.length;
-          if (separator == sass.ListSeparator.undecided && length > 1) {
-            throw paramsError(
-                "List $value can't have an undecided separator because it has "
-                "$length elements");
-          }
+        var length = value.list.contents.length;
+        if (separator == sass.ListSeparator.undecided && length > 1) {
+          throw paramsError(
+              "List $value can't have an undecided separator because it has "
+              "$length elements");
+        }
 
-          return sass.SassList([
-            for (var element in value.list.contents) _deprotofy(element)
-          ], separator, brackets: value.list.hasBrackets);
+        return sass.SassList([
+          for (var element in value.list.contents) _deprotofy(element)
+        ], separator, brackets: value.list.hasBrackets);
 
-        case Value_Value.map:
-          return value.map.entries.isEmpty
-              ? const sass.SassMap.empty()
-              : sass.SassMap({
-                  for (var entry in value.map.entries)
-                    _deprotofy(entry.key): _deprotofy(entry.value)
-                });
+      case Value_Value.map:
+        return value.map.entries.isEmpty
+            ? const sass.SassMap.empty()
+            : sass.SassMap({
+                for (var entry in value.map.entries)
+                  _deprotofy(entry.key): _deprotofy(entry.value)
+              });
 
-        case Value_Value.compilerFunction:
-          var id = value.compilerFunction.id;
-          var function = _functions[id];
-          if (function == null) {
-            throw paramsError(
-                "CompilerFunction.id $id doesn't match any known functions");
-          }
+      case Value_Value.compilerFunction:
+        var id = value.compilerFunction.id;
+        var function = _functions[id];
+        if (function == null) {
+          throw paramsError(
+              "CompilerFunction.id $id doesn't match any known functions");
+        }
 
-          return function;
+        return function;
 
-        case Value_Value.hostFunction:
-          return sass.SassFunction(hostCallable(_dispatcher, _functions,
-              _compilationId, value.hostFunction.signature,
-              id: value.hostFunction.id));
+      case Value_Value.hostFunction:
+        return sass.SassFunction(hostCallable(_dispatcher, _functions,
+            _compilationId, value.hostFunction.signature,
+            id: value.hostFunction.id));
 
-        case Value_Value.calculation:
-          return _deprotofyCalculation(value.calculation);
+      case Value_Value.calculation:
+        return _deprotofyCalculation(value.calculation);
 
-        case Value_Value.singleton:
-          switch (value.singleton) {
-            case SingletonValue.TRUE:
-              return sass.sassTrue;
-            case SingletonValue.FALSE:
-              return sass.sassFalse;
-            case SingletonValue.NULL:
-              return sass.sassNull;
-            default:
-              throw "Unknown Value.singleton ${value.singleton}";
-          }
+      case Value_Value.singleton:
+        switch (value.singleton) {
+          case SingletonValue.TRUE:
+            return sass.sassTrue;
+          case SingletonValue.FALSE:
+            return sass.sassFalse;
+          case SingletonValue.NULL:
+            return sass.sassNull;
+          default:
+            throw "Unknown Value.singleton ${value.singleton}";
+        }
 
-        case Value_Value.notSet:
-          throw mandatoryError("Value.value");
-      }
-    } on RangeError catch (error) {
-      var name = error.name;
-      if (name == null || error.start == null || error.end == null) {
-        throw paramsError(error.toString());
-      }
-
-      if (value.whichValue() == Value_Value.rgbColor) {
-        name = 'RgbColor.$name';
-      } else if (value.whichValue() == Value_Value.hslColor) {
-        name = 'HslColor.$name';
-      }
-
-      throw paramsError(
-          '$name must be between ${error.start} and ${error.end}, was '
-          '${error.invalidValue}');
+      case Value_Value.notSet:
+        throw mandatoryError("Value.value");
     }
+  }
+
+  /// If [value] is within [min] and [max] (inclusive), returns it.
+  ///
+  /// Otherwise, throws a [paramsError].
+  num _checkBounds(num value, String name, num min, num max) {
+    if (value >= min && value <= max) return value;
+    throw paramsError('$name must be between $min and $max, was $value');
   }
 
   /// Converts [number] to its Sass representation.

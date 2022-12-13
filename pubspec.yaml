@@ -41,3 +41,8 @@ dependency_overrides:
     git:
       url: https://github.com/sass/dart-sass.git
       ref: feature.color-4
+  sass_api:
+    git:
+      url: https://github.com/sass/dart-sass.git
+      ref: feature.color-4
+      path: pkg/sass_api

@@ -115,12 +115,13 @@ jobs:
         uses: sass/clone-linked-repo@v1
         with: {repo: sass/sass, path: language}
 
-      - name: "Embedded host: npm install"
-        run: npm install
-        working-directory: embedded-host-node
-      - name: "Embedded host: npm run init"
+      - name: Initialize embedded host
         run: |
-          npm run init -- --protocol-path=../build/embedded-protocol --compiler-path=.. --api-path=../language
+          npm install
+          npm run init -- --protocol-path=../build/embedded-protocol \
+              --compiler-path=.. --api-path=../language
+          npm run compile
+          mv {`pwd`/,dist/}lib/src/vendor/dart-sass-embedded
         working-directory: embedded-host-node
 
       - name: Check out sass-spec
@@ -131,12 +132,8 @@ jobs:
         run: npm install
         working-directory: sass-spec
 
-      - name: Compile embedded host
-        run: |
-          npm run compile
-          mv {`pwd`/,dist/}lib/src/vendor/dart-sass-embedded
-        shell: bash
-        working-directory: embedded-host-node
+      - name: Version info
+        run: ./build/dart-sass-embedded.native --version
 
       - name: Run tests
         run: npm run js-api-spec -- --sassPackage ../embedded-host-node --sassSassRepo ../language

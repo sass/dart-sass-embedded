@@ -40,7 +40,7 @@ jobs:
         run: |
           if [[ -d build/dart-sass ]]; then
             yq -i '
-              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass = {"path": "build/dart-sass"} |
               .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
             ' pubspec.yaml
           fi
@@ -97,7 +97,7 @@ jobs:
         run: |
           if [[ -d build/dart-sass ]]; then
             yq -i '
-              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass = {"path": "build/dart-sass"} |
               .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
             ' pubspec.yaml
           fi
@@ -164,7 +164,7 @@ jobs:
         run: |
           if [[ -d build/dart-sass ]]; then
             yq -i '
-              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass = {"path": "build/dart-sass"} |
               .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
             ' pubspec.yaml
           fi

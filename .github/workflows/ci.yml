@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: frenck/action-setup-yq@v1
       - uses: arduino/setup-protoc@v1
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
@@ -35,22 +36,13 @@ jobs:
           path: build/dart-sass
           default-ref: null
 
-      - name: Check out Dart Sass from main HEAD when using -dev dependency
-        run: |
-          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-            git clone https://github.com/sass/dart-sass.git \
-              --depth 1 build/dart-sass
-          fi
-        shell: bash
-
-      - name: Override dart-sass dependency only if repo was cloned a priori
+      - name: Link the embedded compiler to Dart Sass
         run: |
           if [[ -d build/dart-sass ]]; then
-            (
-              echo "dependency_overrides:"
-              echo "  sass: {path: build/dart-sass}"
-              echo "  sass_api: {path: build/dart-sass/pkg/sass_api}"
-            ) >> pubspec.yaml
+            yq -i '
+              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
+            ' pubspec.yaml
           fi
         shell: bash
 
@@ -88,6 +80,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: dart-lang/setup-dart@v1
         with: {sdk: stable}
+      - uses: frenck/action-setup-yq@v1
       - uses: arduino/setup-protoc@v1
         with:
           version: ${{ env.PROTOC_VERSION }}
@@ -100,22 +93,13 @@ jobs:
           path: build/dart-sass
           default-ref: null
 
-      - name: Check out Dart Sass from main HEAD when using -dev dependency
-        run: |
-          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-            git clone https://github.com/sass/dart-sass.git \
-              --depth 1 build/dart-sass
-          fi
-        shell: bash
-
-      - name: Override dart-sass dependency only if repo was cloned a priori
+      - name: Link the embedded compiler to Dart Sass
         run: |
           if [[ -d build/dart-sass ]]; then
-            (
-              echo "dependency_overrides:"
-              echo "  sass: {path: build/dart-sass}"
-              echo "  sass_api: {path: build/dart-sass/pkg/sass_api}"
-            ) >> pubspec.yaml
+            yq -i '
+              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
+            ' pubspec.yaml
           fi
         shell: bash
 
@@ -164,6 +148,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: frenck/action-setup-yq@v1
       - uses: arduino/setup-protoc@v1
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
@@ -175,22 +160,13 @@ jobs:
           path: build/dart-sass
           default-ref: null
 
-      - name: Check out Dart Sass from main HEAD when using -dev dependency
-        run: |
-          if [[ ! -d build/dart-sass ]] && grep --quiet -E '\bsass:\s*.*-dev["'"'"']?$' pubspec.yaml; then
-            git clone https://github.com/sass/dart-sass.git \
-              --depth 1 build/dart-sass
-          fi
-        shell: bash
-
-      - name: Override dart-sass dependency only if repo was cloned a priori
+      - name: Link the embedded compiler to Dart Sass
         run: |
           if [[ -d build/dart-sass ]]; then
-            (
-              echo "dependency_overrides:"
-              echo "  sass: {path: build/dart-sass}"
-              echo "  sass_api: {path: build/dart-sass/pkg/sass_api}"
-            ) >> pubspec.yaml
+            yq -i '
+              .dependency_overrides.sass = {"path": "build/dart-sass"}
+              .dependency_overrides.sass_api = {"path": "build/dart-sass/pkg/sass_api"}
+            ' pubspec.yaml
           fi
         shell: bash
 

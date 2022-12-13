@@ -133,7 +133,7 @@ jobs:
         working-directory: sass-spec
 
       - name: Version info
-        run: ./embedded-host-node/dist/lib/src/vendor/dart-sass-embedded --version
+        run: ./embedded-host-node/dist/lib/src/vendor/dart-sass-embedded/dart-sass-embedded --version
 
       - name: Run tests
         run: npm run js-api-spec -- --sassPackage ../embedded-host-node --sassSassRepo ../language

@@ -14,8 +14,8 @@ dependencies:
   meta: ^1.1.0
   path: ^1.6.0
   protobuf: ^2.0.0
-  sass: 1.56.2
-  sass_api: ^4.0.0
+  sass: 1.57.0
+  sass_api: ^5.0.0
   source_span: ^1.1.0
   stack_trace: ^1.6.0
   stream_channel: ">=1.6.0 <3.0.0"

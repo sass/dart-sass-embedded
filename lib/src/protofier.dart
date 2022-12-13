@@ -48,17 +48,17 @@ class Protofier {
     } else if (value is sass.SassNumber) {
       result.number = _protofyNumber(value);
     } else if (value is sass.SassColor) {
-      if (value.hasCalculatedHsl) {
+      if (value.space == sass.ColorSpace.hsl) {
         result.hslColor = Value_HslColor()
-          ..hue = value.hue * 1.0
-          ..saturation = value.saturation * 1.0
-          ..lightness = value.lightness * 1.0
+          ..hue = value.channel('hue') * 1.0
+          ..saturation = value.channel('saturation') * 1.0
+          ..lightness = value.channel('lightness') * 1.0
           ..alpha = value.alpha * 1.0;
       } else {
         result.rgbColor = Value_RgbColor()
-          ..red = value.red
-          ..green = value.green
-          ..blue = value.blue
+          ..red = value.channel('red').clamp(0, 255).round()
+          ..green = value.channel('green').clamp(0, 255).round()
+          ..blue = value.channel('blue').clamp(0, 255).round()
           ..alpha = value.alpha * 1.0;
       }
     } else if (value is sass.SassArgumentList) {

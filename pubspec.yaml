@@ -35,3 +35,9 @@ dev_dependencies:
     git:
       url: https://github.com/sass/dart-sass.git
       path: analysis
+
+dependency_overrides:
+  sass:
+    git:
+      url: https://github.com/sass/dart-sass.git
+      ref: feature.color-4

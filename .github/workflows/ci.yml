@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: frenck/action-setup-yq@v1
-        version: v4.30.5 # frenck/action-setup-yq#35
+        with: {version: v4.30.5} # frenck/action-setup-yq#35
       - uses: arduino/setup-protoc@v1
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1
@@ -82,7 +82,7 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with: {sdk: stable}
       - uses: frenck/action-setup-yq@v1
-        version: v4.30.5 # frenck/action-setup-yq#35
+        with: {version: v4.30.5} # frenck/action-setup-yq#35
       - uses: arduino/setup-protoc@v1
         with:
           version: ${{ env.PROTOC_VERSION }}
@@ -148,7 +148,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: frenck/action-setup-yq@v1
-        version: v4.30.5 # frenck/action-setup-yq#35
+        with: {version: v4.30.5} # frenck/action-setup-yq#35
       - uses: arduino/setup-protoc@v1
         with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
       - uses: dart-lang/setup-dart@v1

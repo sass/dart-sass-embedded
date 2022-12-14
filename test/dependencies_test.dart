@@ -16,8 +16,11 @@ void main() {
   // or the same version as the version we're testing against.
 
   test('depends on a compatible version of Dart Sass', () {
-    var sassDependency = _pubspec.dependencies['sass'];
-    if (sassDependency is GitDependency) return;
+    var sassDependency =
+        _pubspec.dependencyOverrides['sass'] ?? _pubspec.dependencies['sass'];
+    if (sassDependency is GitDependency || sassDependency is PathDependency) {
+      return;
+    }
 
     var actualVersion =
         (Process.runSync('dart', ['run', 'sass', '--version']).stdout as String)

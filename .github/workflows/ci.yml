@@ -1,5 +1,8 @@
 name: CI
 
+defaults:
+  run: {shell: bash}
+
 env:
   protoc_version: '3.x'
 

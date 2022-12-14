@@ -140,8 +140,8 @@ jobs:
       - name: Version info
         run: |
           path=embedded-host-node/dist/lib/src/vendor/dart-sass-embedded/dart-sass-embedded
-          ls embedded-host-node/dist/lib/src/vendor/dart-sass-embedded # DEBUG
           if [[ -f "$path.cmd" ]]; then "./$path.cmd" --version
+          elif [[ -f "$path.bat" ]]; then "./$path.bat" --version
           elif [[ -f "$path.exe" ]]; then "./$path.exe" --version
           else "./$path" --version
           fi

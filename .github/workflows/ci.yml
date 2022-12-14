@@ -138,7 +138,12 @@ jobs:
         working-directory: sass-spec
 
       - name: Version info
-        run: ./embedded-host-node/dist/lib/src/vendor/dart-sass-embedded/dart-sass-embedded --version
+        run: |
+          path=./embedded-host-node/dist/lib/src/vendor/dart-sass-embedded/dart-sass-embedded
+          if [[ -f "$path.cmd" ]]; then "./$path.cmd" --version
+          elif [[ -f "$path.exe" ]]; then "./$path.exe" --version
+          else; "./$path" --version
+          fi
 
       - name: Run tests
         run: npm run js-api-spec -- --sassPackage ../embedded-host-node --sassSassRepo ../language

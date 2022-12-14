@@ -142,7 +142,7 @@ jobs:
           path=./embedded-host-node/dist/lib/src/vendor/dart-sass-embedded/dart-sass-embedded
           if [[ -f "$path.cmd" ]]; then "./$path.cmd" --version
           elif [[ -f "$path.exe" ]]; then "./$path.exe" --version
-          else; "./$path" --version
+          else "./$path" --version
           fi
 
       - name: Run tests

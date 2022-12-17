@@ -436,7 +436,7 @@ packages:
       name: test_descriptor
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.0.0"
+    version: "2.0.1"
   test_process:
     dependency: transitive
     description:

@@ -14,7 +14,7 @@ dependencies:
   meta: ^1.1.0
   path: ^1.6.0
   protobuf: ^2.0.0
-  sass: 1.56.2
+  sass: ^1.56.2
   sass_api: ^4.0.0
   source_span: ^1.1.0
   stack_trace: ^1.6.0

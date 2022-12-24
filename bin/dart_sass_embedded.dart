@@ -63,8 +63,7 @@ void main(List<String> args) {
         case InboundMessage_CompileRequest_Input.string:
           var input = request.string;
           sass.AsyncImporter? importer =
-              _decodeImporter(dispatcher, request, input.importer) ??
-                  (input.url.startsWith("file:") ? null : sass.Importer.noOp);
+              _decodeImporter(dispatcher, request, input.importer);
           if (importer == null &&
               importers.isEmpty &&
               globalFunctions.isEmpty) {
@@ -72,7 +71,8 @@ void main(List<String> args) {
                 color: request.alertColor,
                 logger: logger,
                 importers: [],
-                importer: null,
+                importer:
+                    input.url.startsWith("file:") ? null : sass.Importer.noOp,
                 functions: [],
                 syntax: syntaxToSyntax(input.syntax),
                 style: style,
@@ -86,7 +86,8 @@ void main(List<String> args) {
                 color: request.alertColor,
                 logger: logger,
                 importers: importers,
-                importer: importer,
+                importer: importer ??
+                    (input.url.startsWith("file:") ? null : sass.Importer.noOp),
                 functions: globalFunctions,
                 syntax: syntaxToSyntax(input.syntax),
                 style: style,

@@ -62,20 +62,40 @@ void main(List<String> args) {
       switch (request.whichInput()) {
         case InboundMessage_CompileRequest_Input.string:
           var input = request.string;
-          result = sass.compileStringToResult(input.source,
-              color: request.alertColor,
-              logger: logger,
-              importers: importers,
-              importer: _decodeImporter(dispatcher, request, input.importer) ??
-                  (input.url.startsWith("file:") ? null : sass.Importer.noOp),
-              functions: globalFunctions,
-              syntax: syntaxToSyntax(input.syntax),
-              style: style,
-              url: input.url.isEmpty ? null : input.url,
-              quietDeps: request.quietDeps,
-              verbose: request.verbose,
-              sourceMap: request.sourceMap,
-              charset: request.charset);
+          sass.AsyncImporter? importer =
+              _decodeImporter(dispatcher, request, input.importer) ??
+                  (input.url.startsWith("file:") ? null : sass.Importer.noOp);
+          if (importer == null &&
+              importers.isEmpty &&
+              globalFunctions.isEmpty) {
+            result = sass.compileStringToResult(input.source,
+                color: request.alertColor,
+                logger: logger,
+                importers: [],
+                importer: null,
+                functions: [],
+                syntax: syntaxToSyntax(input.syntax),
+                style: style,
+                url: input.url.isEmpty ? null : input.url,
+                quietDeps: request.quietDeps,
+                verbose: request.verbose,
+                sourceMap: request.sourceMap,
+                charset: request.charset);
+          } else {
+            result = await sass.compileStringToResultAsync(input.source,
+                color: request.alertColor,
+                logger: logger,
+                importers: importers,
+                importer: importer,
+                functions: globalFunctions,
+                syntax: syntaxToSyntax(input.syntax),
+                style: style,
+                url: input.url.isEmpty ? null : input.url,
+                quietDeps: request.quietDeps,
+                verbose: request.verbose,
+                sourceMap: request.sourceMap,
+                charset: request.charset);
+          }
           break;
 
         case InboundMessage_CompileRequest_Input.path:
@@ -84,16 +104,29 @@ void main(List<String> args) {
           }
 
           try {
-            result = sass.compileToResult(request.path,
-                color: request.alertColor,
-                logger: logger,
-                importers: importers,
-                functions: globalFunctions,
-                style: style,
-                quietDeps: request.quietDeps,
-                verbose: request.verbose,
-                sourceMap: request.sourceMap,
-                charset: request.charset);
+            if (importers.isEmpty && globalFunctions.isEmpty) {
+              result = sass.compileToResult(request.path,
+                  color: request.alertColor,
+                  logger: logger,
+                  importers: [],
+                  functions: [],
+                  style: style,
+                  quietDeps: request.quietDeps,
+                  verbose: request.verbose,
+                  sourceMap: request.sourceMap,
+                  charset: request.charset);
+            } else {
+              result = await sass.compileToResultAsync(request.path,
+                  color: request.alertColor,
+                  logger: logger,
+                  importers: importers,
+                  functions: globalFunctions,
+                  style: style,
+                  quietDeps: request.quietDeps,
+                  verbose: request.verbose,
+                  sourceMap: request.sourceMap,
+                  charset: request.charset);
+            }
           } on FileSystemException catch (error) {
             return OutboundMessage_CompileResponse()
               ..failure = (OutboundMessage_CompileResponse_CompileFailure()
@@ -135,8 +168,8 @@ void main(List<String> args) {
   });
 }
 
-/// Converts [importer] into a [sass.Importer].
-sass.Importer? _decodeImporter(
+/// Converts [importer] into a [sass.AsyncImporter].
+sass.AsyncImporter? _decodeImporter(
     Dispatcher dispatcher,
     InboundMessage_CompileRequest request,
     InboundMessage_CompileRequest_Importer importer) {

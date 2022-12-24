@@ -9,7 +9,7 @@ import '../dispatcher.dart';
 
 /// An abstract base class for importers that communicate with the host in some
 /// way.
-abstract class ImporterBase extends sass.Importer {
+abstract class ImporterBase extends sass.AsyncImporter {
   /// The [Dispatcher] to which to send requests.
   @protected
   final Dispatcher dispatcher;

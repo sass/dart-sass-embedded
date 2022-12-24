@@ -2,8 +2,6 @@
 // MIT-style license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-// ignore: deprecated_member_use
-import 'dart:cli';
 import 'dart:io';
 
 import 'package:sass_api/sass_api.dart' as sass;
@@ -22,11 +20,11 @@ import 'utils.dart';
 /// the name defined in the [signature].
 ///
 /// Throws a [sass.SassException] if [signature] is invalid.
-sass.Callable hostCallable(Dispatcher dispatcher, FunctionRegistry functions,
-    int compilationId, String signature,
+sass.AsyncCallable hostCallable(Dispatcher dispatcher,
+    FunctionRegistry functions, int compilationId, String signature,
     {int? id}) {
-  late sass.Callable callable;
-  callable = sass.Callable.fromSignature(signature, (arguments) {
+  late sass.AsyncCallable callable;
+  callable = sass.AsyncCallable.fromSignature(signature, (arguments) async {
     var protofier = Protofier(dispatcher, functions, compilationId);
     var request = OutboundMessage_FunctionCallRequest()
       ..compilationId = compilationId
@@ -39,8 +37,7 @@ sass.Callable hostCallable(Dispatcher dispatcher, FunctionRegistry functions,
       request.name = callable.name;
     }
 
-    // ignore: deprecated_member_use
-    var response = waitFor(dispatcher.sendFunctionCallRequest(request));
+    var response = await dispatcher.sendFunctionCallRequest(request);
     try {
       switch (response.whichResult()) {
         case InboundMessage_FunctionCallResponse_Result.success:

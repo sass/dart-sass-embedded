@@ -2,8 +2,7 @@
 // MIT-style license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-// ignore: deprecated_member_use
-import 'dart:cli';
+import 'dart:async';
 
 import 'package:sass_api/sass_api.dart' as sass;
 
@@ -29,11 +28,10 @@ class FileImporter extends ImporterBase {
   FileImporter(Dispatcher dispatcher, this._compilationId, this._importerId)
       : super(dispatcher);
 
-  Uri? canonicalize(Uri url) {
+  FutureOr<Uri?> canonicalize(Uri url) {
     if (url.scheme == 'file') return _filesystemImporter.canonicalize(url);
 
-    // ignore: deprecated_member_use
-    return waitFor(() async {
+    return (() async {
       var response = await dispatcher
           .sendFileImportRequest(OutboundMessage_FileImportRequest()
             ..compilationId = _compilationId

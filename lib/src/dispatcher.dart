@@ -41,12 +41,6 @@ class Dispatcher {
       FutureOr<OutboundMessage_CompileResponse> callback(
           InboundMessage_CompileRequest request)) {
     _channel.stream.listen((binaryMessage) async {
-      // Wait a single microtask tick so that we're running in a separate
-      // microtask from the initial request dispatch. Otherwise, [waitFor] will
-      // deadlock the event loop fiber that would otherwise be checking stdin
-      // for new input.
-      await Future<void>.value();
-
       InboundMessage? message;
       try {
         try {

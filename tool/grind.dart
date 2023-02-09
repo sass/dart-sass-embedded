@@ -54,8 +54,7 @@ Future<void> protobuf() async {
 dart run protoc_plugin %*
 ''');
   } else {
-    File('build/protoc-gen-dart')
-        .writeAsStringSync('''
+    File('build/protoc-gen-dart').writeAsStringSync('''
 #!/bin/sh
 dart run protoc_plugin "\$@"
 ''');

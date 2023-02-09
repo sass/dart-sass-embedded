@@ -27,7 +27,7 @@ From there, you can either run `dart bin/dart_sass_embedded.dart` directly or
 `dart run grinder pkg-standalone-dev` to build a compiled development
 executable.
 
-[install `buf`]: https://docs.buf.build/installation
+[Install `buf`]: https://docs.buf.build/installation
 
 ### Releases
 

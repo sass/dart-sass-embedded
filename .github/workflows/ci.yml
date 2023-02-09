@@ -3,9 +3,6 @@ name: CI
 defaults:
   run: {shell: bash}
 
-env:
-  protoc_version: '3.x'
-
 on:
   push:
     branches: [main, feature.*]
@@ -28,8 +25,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: frenck/action-setup-yq@v1
         with: {version: v4.30.5} # frenck/action-setup-yq#35
-      - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
+      - run: npm install --global @protobuf-ts/protoc
       - uses: dart-lang/setup-dart@v1
         with: {sdk: "${{ matrix.dart_channel }}"}
 
@@ -86,10 +82,7 @@ jobs:
         with: {sdk: stable}
       - uses: frenck/action-setup-yq@v1
         with: {version: v4.30.5} # frenck/action-setup-yq#35
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: ${{ env.PROTOC_VERSION }}
-          repo-token: '${{ github.token }}'
+      - run: npm install --global @protobuf-ts/protoc
 
       - name: Check out Dart Sass only if linked in the PR description
         uses: sass/clone-linked-repo@v1
@@ -161,8 +154,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: frenck/action-setup-yq@v1
         with: {version: v4.30.5} # frenck/action-setup-yq#35
-      - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
+      - run: npm install --global @protobuf-ts/protoc
       - uses: dart-lang/setup-dart@v1
 
       - name: Check out Dart Sass only if linked in the PR description
@@ -210,20 +202,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: arduino/setup-protoc@v1
-        with: { version: "${{ env.protoc_version }}", repo-token: "${{ github.token }}" }
+      - name: Install protoc
+        run: npm install --global @protobuf-ts/protoc
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
       - run: dart run grinder protobuf
-      # We need to upload the compiled protobuf rather than recompiling it on
-      # other platforms because arduino/setup-protoc currently) requires Node 12
-      # which doesn't support ARM.
-      - uses: actions/upload-artifact@v3
-        with:
-          name: embedded-protocol
-          path: |
-            build/embedded-protocol
-            lib/src/embedded_sass.*.dart
       - name: Deploy
         run: dart run grinder pkg-github-release pkg-github-linux-ia32 pkg-github-linux-x64
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}
@@ -243,9 +226,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-        with:
-          name: embedded-protocol
+      - run: npm install --global @protobuf-ts/protoc
+      - run: dart pub get
+      - run: dart pub grinder protobuf
       - uses: docker/setup-qemu-action@v2
       - name: Deploy
         run: |
@@ -278,14 +261,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-        with:
-          name: embedded-protocol
+      - run: npm install --global @protobuf-ts/protoc
       - uses: dart-lang/setup-dart@v1
         # Workaround for dart-lang/setup-dart#59
         with:
           architecture: ${{ matrix.architecture }}
       - run: dart pub get
+      - run: dart pub run grinder protobuf
       - name: Deploy
         run: dart run grinder pkg-github-${{ matrix.platform }}
         env: {GH_BEARER_TOKEN: "${{ github.token }}"}

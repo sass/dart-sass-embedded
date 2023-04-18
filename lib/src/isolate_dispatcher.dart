@@ -7,28 +7,39 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:async/async.dart';
+import 'package:pool/pool.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:stream_channel/isolate_channel.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:tuple/tuple.dart';
 
-import 'embedded_sass.pb.dart';
-import 'utils.dart';
 import 'dispatcher.dart';
+import 'embedded_sass.pb.dart';
+import 'util/proto_extensions.dart';
+import 'utils.dart';
 
 /// A class that dispatches messages to and from the host.
 class IsolateDispatcher {
   /// The channel of encoded protocol buffers, connected to the host.
   final StreamChannel<Uint8List> _channel;
 
-  /// The set of all sinks for communicating with isolates.
-  final _allIsolates = <StreamSink<GeneratedMessage>>{};
+  /// The communication channels for exchanging messages with isolates that aren't
+  /// actively running a compilation.
+  final _inactiveIsolates =
+      <Tuple2<StreamSink<GeneratedMessage>, StreamQueue<OutboundMessage>>>{};
 
   /// A list whose indexes are outstanding request IDs and whose elements are
   /// the sinks for isolates that are waiting for responses to those requests.
   ///
   /// A `null` element indicates an ID whose request has been responded to.
   final _outstandingRequests = <StreamSink<GeneratedMessage>?>[];
+
+  /// A pool controlling how many isolates (and thus concurrent compilations)
+  /// may be live at once.
+  ///
+  /// More than 15 concurrent `waitFor()` calls seems to deadlock the Dart VM,
+  /// even across isolates. See sass/dart-sass-embedded#112.
+  final _isolatePool = Pool(15);
 
   var _nextIsolateId = 0;
 
@@ -88,56 +99,57 @@ class IsolateDispatcher {
   }
 
   Future<OutboundMessage_CompileResponse> _compile(
-      InboundMessage compileRequest) async {
+      InboundMessage compileRequest) {
+    return _isolatePool.withResource(() async {
+      var tuple = await _getIsolate();
+      var sink = tuple.item1;
+      var queue = tuple.item2;
+
+      sink.add(compileRequest);
+      while (await queue.hasNext) {
+        var message = await queue.next;
+
+        // TODO before landing: close out the process on unrecoverable errors.
+        if (message.whichMessage() == OutboundMessage_Message.compileResponse) {
+          _inactiveIsolates.add(tuple);
+          return message.compileResponse;
+        }
+
+        _send(message);
+
+        var id = message.id;
+        if (id >= _outstandingRequests.length) {
+          _outstandingRequests.length = id + 1;
+        }
+
+        assert(_outstandingRequests[id] == null);
+        _outstandingRequests[id] = sink;
+      }
+
+      throw StateError(
+          "IsolateChannel closed without sending a CompileResponse.");
+    });
+  }
+
+  /// Returns an isolate that's ready to run a new compilation.
+  ///
+  /// This re-uses an existing isolate if possible, and spawns a new one
+  /// otherwise.
+  Future<Tuple2<StreamSink<GeneratedMessage>, StreamQueue<OutboundMessage>>>
+      _getIsolate() async {
+    if (_inactiveIsolates.isNotEmpty) {
+      var tuple = _inactiveIsolates.first;
+      _inactiveIsolates.remove(tuple);
+      return tuple;
+    }
+
     var receivePort = ReceivePort();
     await Isolate.spawn(
         _isolateMain, Tuple2(receivePort.sendPort, _nextIsolateId++));
 
     var channel = IsolateChannel<GeneratedMessage>.connectReceive(receivePort);
-    _allIsolates.add(channel.sink);
-    channel.sink.add(compileRequest);
-
-    await for (var message in channel.stream.cast<OutboundMessage>()) {
-      // TODO before landing: close out the process on unrecoverable errors.
-      if (message.whichMessage() == OutboundMessage_Message.compileResponse) {
-        // TODO before landing: see if re-using isolates is more efficient
-        channel.sink.close();
-        return message.compileResponse;
-      }
-
-      _send(message);
-
-      var id = _getOutboundId(message);
-      if (id >= _outstandingRequests.length) {
-        _outstandingRequests.length = id + 1;
-      }
-
-      assert(_outstandingRequests[id] == null);
-      _outstandingRequests[id] = channel.sink;
-    }
-
-    throw StateError(
-        "IsolateChannel closed without sending a CompileResponse.");
-  }
-
-  // TODO before landing: make this an extensio method.
-  int _getOutboundId(OutboundMessage message) {
-    switch (message.whichMessage()) {
-      case OutboundMessage_Message.compileResponse:
-        return message.compileResponse.id;
-      case OutboundMessage_Message.canonicalizeRequest:
-        return message.canonicalizeRequest.id;
-      case OutboundMessage_Message.importRequest:
-        return message.importRequest.id;
-      case OutboundMessage_Message.fileImportRequest:
-        return message.fileImportRequest.id;
-      case OutboundMessage_Message.functionCallRequest:
-        return message.functionCallRequest.id;
-      case OutboundMessage_Message.versionResponse:
-        return message.versionResponse.id;
-      default:
-        throw ArgumentError("Unknown message type: ${message.toDebugString()}");
-    }
+    return Tuple2(
+        channel.sink, StreamQueue(channel.stream.cast<OutboundMessage>()));
   }
 
   /// Creates a [OutboundMessage_VersionResponse]
@@ -176,8 +188,9 @@ class IsolateDispatcher {
 void _isolateMain(Tuple2<SendPort, int> args) {
   var channel = IsolateChannel<GeneratedMessage>.connectSend(args.item1);
   Dispatcher(
-      channel.stream.cast<InboundMessage>(),
-      channel.sink.transform(StreamSinkTransformer.fromHandlers(
-          handleData: (data, sink) => sink.add(data))),
-        args.item2).listen();
+          channel.stream.cast<InboundMessage>(),
+          channel.sink.transform(StreamSinkTransformer.fromHandlers(
+              handleData: (data, sink) => sink.add(data))),
+          args.item2)
+      .listen();
 }

@@ -17,6 +17,7 @@ import 'host_callable.dart';
 import 'importer/file.dart';
 import 'importer/host.dart';
 import 'logger.dart';
+import 'util/proto_extensions.dart';
 import 'utils.dart';
 
 /// A class that dispatches messages to and from the host.
@@ -261,7 +262,7 @@ class Dispatcher {
   /// Sends [request] to the host and returns the message sent in response.
   Future<T> _sendRequest<T extends GeneratedMessage>(
       OutboundMessage request) async {
-    _setOutboundId(request, _outboundId);
+    request.id = _outboundId;
     _send(request);
 
     return (_outstandingRequest = Completer<T>()).future;
@@ -297,35 +298,6 @@ class Dispatcher {
         return message.compileRequest.id;
       default:
         return null;
-    }
-  }
-
-  // TODO before landing: Make this an extension method
-  /// Sets the id for [message] to [id].
-  ///
-  /// Throws an [ArgumentError] if [message] doesn't have an id field.
-  void _setOutboundId(OutboundMessage message, int id) {
-    switch (message.whichMessage()) {
-      case OutboundMessage_Message.compileResponse:
-        message.compileResponse.id = id;
-        break;
-      case OutboundMessage_Message.canonicalizeRequest:
-        message.canonicalizeRequest.id = id;
-        break;
-      case OutboundMessage_Message.importRequest:
-        message.importRequest.id = id;
-        break;
-      case OutboundMessage_Message.fileImportRequest:
-        message.fileImportRequest.id = id;
-        break;
-      case OutboundMessage_Message.functionCallRequest:
-        message.functionCallRequest.id = id;
-        break;
-      case OutboundMessage_Message.versionResponse:
-        message.versionResponse.id = id;
-        break;
-      default:
-        throw ArgumentError("Unknown message type: ${message.toDebugString()}");
     }
   }
 }

@@ -1,3 +1,11 @@
+**This is no longer the repository for Embedded Dart Sass.** The embedded
+compiler has been merged into [the primary Dart Sass repository], and further
+releases will be included [as part of Dart Sass itself]. The embedded compiler
+can be accessed by running `sass --embedded`.
+
+[the primary Dart Sass repository]: https://github.com/sass/dart-sass
+[as part of Dart Sass itself]: https://github.com/sass/dart-sass#embedded-dart-sass
+
 ## Embedded Dart Sass
 
 This is a wrapper for [Dart Sass][] that implements the compiler side of the
